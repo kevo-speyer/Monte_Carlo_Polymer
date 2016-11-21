@@ -54,7 +54,9 @@ call get_energy()
 
 !Difference energy between old and new config
 delta_energy = energy - old_energy
-write(22,*) i_time, delta_energy
+
+!DEBUG
+!write(22,*) i_time, delta_energy
 
 ! If energy lowers, accept move
 if (delta_energy .gt. 0.) then
@@ -76,14 +78,27 @@ implicit none
 
 !Pick random monomer
 mv_mon = int( uni() * float(n_mon) ) + 1 
+!DEBUG
+!print*, "mv_mon",mv_mon
 
 !Set random move
 do i_dim = 1, n_dim
     dr_mv(i_dim) = a_box * uni() 
 end do
 
+!DEBUG
+!print*,"dr_mv(:)", dr_mv(:)
+!DEBUG
+!write(62,*) i_time, sqrt( sum( ( r0(:,i_mon) - r0(:,i_mon-1) ) ** 2 ) )
+
+!print*,"BEFORE", r0(:,mv_mon)
 !Perform move
-r0(:,mv_mon) = r0(:,mv_mon) + dr_mv(i_dim)
+
+r0(:,mv_mon) = r0(:,mv_mon) + dr_mv(:)
+
+!print*,"AFTER", r0(:,mv_mon)
+!DEBUG
+!write(62,*) i_time, sqrt( sum( ( r0(:,i_mon) - r0(:,i_mon-1) ) ** 2 ) )
 
 end subroutine
 
@@ -98,6 +113,7 @@ do i_mon = 2, n_mon
     energy = energy + k_spr * sqrt( sum( ( r0(:,i_mon) - r0(:,i_mon-1) ) ** 2 ) )    
 end do
 
+write(61,*) energy
 end subroutine
 
 subroutine init_system()
