@@ -49,8 +49,6 @@ use ziggurat
 
 implicit none
 real(kind=8) :: prob_rej
-!Get new energy
-call get_energy()
 
 !Difference energy between old and new config
 delta_energy = energy - old_energy
@@ -59,14 +57,14 @@ delta_energy = energy - old_energy
 !write(22,*) i_time, delta_energy
 
 ! If energy lowers, accept move
-if (delta_energy .gt. 0.) then
+!if (delta_energy .gt. 0.) then
     prob_rej = 1. - exp(-delta_energy / Temp)
     if( uni() .le. prob_rej) then !If change is rejected
         !Undo move
-        r0(:,mv_mon) = r0(:,mv_mon) - dr_mv(i_dim)
+        r0(:,mv_mon) = r0(:,mv_mon) - dr_mv(:)
         energy = old_energy
     end if    
-end if
+!end if
 end subroutine
 
 
@@ -113,7 +111,7 @@ do i_mon = 2, n_mon
     energy = energy + k_spr * sqrt( sum( ( r0(:,i_mon) - r0(:,i_mon-1) ) ** 2 ) )    
 end do
 
-write(61,*) energy
+!write(61,*) energy
 end subroutine
 
 subroutine init_system()
