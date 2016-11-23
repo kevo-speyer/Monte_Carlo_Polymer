@@ -1,7 +1,7 @@
 3   n_dim
 100    Lx box
-100000    n_time
-10    n_mon
-2.    a_box
+500000    n_time
+32    n_mon
+50.    a_box
 1.5    k_spr
-1.    Temp
+0.4    Temp
