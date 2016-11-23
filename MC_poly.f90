@@ -9,7 +9,11 @@ call read_input()
 
 ! Initialize system 
 inquire( file='init_positions.dat', exist=init_pos ) 
-if ( init_pos ) init_mode = 3
+if ( init_pos )  then
+    init_mode = 3
+else
+    init_mode = 2
+end if    
 call init_system(init_mode) ! 1 is random walk;
                     ! 2 is uniformly random (no correlation between beads)
                     ! 3 is read old file with positions 
@@ -30,7 +34,7 @@ do i_time = 1, n_time
     call MC_acceptance()
 
 ! Save data every n_mon trials
-    if ( mod(i_time,n_mon) .eq. 0 ) then
+    if ( mod(i_time,n_save) .eq. 0 ) then
         call save_data()
     end if
 end do
@@ -65,7 +69,7 @@ implicit none
 open (unit=14, file='last_config.dat', status='unknown')
 
 do i_mon = 1, n_mon
-    write(14,"(3f9.4)" ) r0(:,i_mon)
+    write(14,"(3f15.4)" ) r0(:,i_mon)
 end do
 
 close(14)
@@ -104,10 +108,10 @@ call get_rend()
 write(60,*) i_time, energy
 
 !Save Chain Center of mass
-write(70,"(I9.1,3f9.4)" ) i_time, r_cm(1), r_cm(2), r_cm(3)
+write(70,"(I15.1,3f13.4)" ) i_time, r_cm(:)
 
 !Save Rend vector
-write(71,"(I9.1,3f9.4)" ) i_time, r_end(:)
+write(71,"(I15.1,3f9.4)" ) i_time, r_end(:)
 end subroutine
 
 subroutine MC_acceptance()
@@ -121,14 +125,14 @@ real(kind=8) :: prob_rej
 delta_energy = energy - old_energy
 
 ! If energy lowers, accept move
-!if (delta_energy .gt. 0.) then
+if (delta_energy .gt. 0.) then
     prob_rej = 1. - exp(-delta_energy / Temp)
     if( uni() .le. prob_rej) then !If change is rejected
         !Undo move
         r0(:,mv_mon) = r0(:,mv_mon) - dr_mv(:)
         energy = old_energy
     end if    
-!end if
+end if
 end subroutine
 
 
@@ -160,7 +164,7 @@ energy = 0
 
 !loop over monomers
 do i_mon = 2, n_mon 
-    energy = energy + k_spr * sqrt( sum( ( r0(:,i_mon) - r0(:,i_mon-1) ) ** 2 ) )    
+    energy = energy + k_spr * sum( ( r0(:,i_mon) - r0(:,i_mon-1) ) ** 2 )     
 end do
 
 energy = energy * 0.5
@@ -238,6 +242,7 @@ read(53,*) n_mon
 read(53,*) a_box
 read(53,*) Rend2
 read(53,*) Temp
+read(53,*) n_save
 close(53)
 
 k_spr = 3. * ( float( n_mon ) - 1. ) / Rend2
