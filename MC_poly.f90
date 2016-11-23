@@ -108,7 +108,7 @@ call get_rend()
 write(60,*) i_time, energy
 
 !Save Chain Center of mass
-write(70,"(I15.1,3f13.4)" ) i_time,  r_cm(:) - r_cm_init(:) 
+write(70,"(I15.1,3f13.4)" ) i_time,  r_cm(:) - r_cm_init(:) !sum ( ( r_cm(:) - r_cm_init(:) )**2 )
 
 !Save Rend vector
 write(71,"(I15.1,3f9.4)" ) i_time, r_end(:)
