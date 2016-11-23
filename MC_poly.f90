@@ -7,9 +7,12 @@ implicit none
 ! Read input parameters
 call read_input()
 
-! Initialize system
-call init_system(2) ! 1 is random walk;
-                    ! 2 is uniformly random (no correlation between beads) 
+! Initialize system 
+inquire( file='init_positions.dat', exist=init_pos ) 
+if ( init_pos ) init_mode = 3
+call init_system(init_mode) ! 1 is random walk;
+                    ! 2 is uniformly random (no correlation between beads)
+                    ! 3 is read old file with positions 
 ! Meassure Energy
 call get_energy()
 
@@ -32,7 +35,42 @@ do i_time = 1, n_time
     end if
 end do
 
+call save_positions()
+
 end program
+
+subroutine read_init_pos()
+use com_vars
+implicit none
+
+open (unit=16, file='init_positions.dat', status='old')
+
+if(n_dim.ne.3) then 
+    print*, "If n_dim is not 3, the program does not work"
+    call exit()
+end if
+
+do i_mon = 1, n_mon
+    read(16,"(3f9.4)") r0(1,i_mon), r0(2,i_mon), r0(3,i_mon)
+end do
+
+close(16)
+
+end subroutine
+
+subroutine save_positions()
+use com_vars
+implicit none
+
+open (unit=14, file='last_config.dat', status='unknown')
+
+do i_mon = 1, n_mon
+    write(14,"(3f9.4)" ) r0(:,i_mon)
+end do
+
+close(14)
+
+end subroutine
 
 subroutine get_rcm()
 use com_vars
@@ -130,11 +168,10 @@ energy = energy * 0.5
 !write(61,*) energy
 end subroutine
 
-subroutine init_system(init_mode)
+subroutine init_system()
 use com_vars
 use ziggurat
 implicit none
-integer, intent(in) :: init_mode
 real(kind=8) signo, dr
 real(kind=8),dimension(n_dim) :: r_center
 
@@ -178,7 +215,11 @@ case(2)
         end do
     end do
 
+case(3)
+call read_init_pos()
+
 end select
+
 
 end subroutine
 
