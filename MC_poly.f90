@@ -108,7 +108,7 @@ call get_rend()
 write(60,*) i_time, energy
 
 !Save Chain Center of mass
-write(70,"(I15.1,3f13.4)" ) i_time, r_cm(:)
+write(70,"(I15.1,3f13.4)" ) i_time,  r_cm(:) - r_cm_init(:) 
 
 !Save Rend vector
 write(71,"(I15.1,3f9.4)" ) i_time, r_end(:)
@@ -147,7 +147,7 @@ mv_mon = int( uni() * float(n_mon) ) + 1
 
 !Set random move
 do i_dim = 1, n_dim
-    dr_mv(i_dim) = a_box * uni() 
+    dr_mv(i_dim) = a_box * ( uni() - .5 )
 end do
 
 !Perform move
@@ -180,7 +180,7 @@ real(kind=8) signo, dr
 real(kind=8),dimension(n_dim) :: r_center
 
 allocate( r0(n_dim,n_mon), boundary(n_dim), dr_mv(n_dim) ) 
-allocate( r_end(n_dim), r_cm(n_dim) )
+allocate( r_end(n_dim), r_cm(n_dim), r_cm_init(n_dim) )
 
 !Initiate random seed
 call init_rand_seed()
@@ -224,6 +224,8 @@ call read_init_pos()
 
 end select
 
+!Set initial position
+r_cm_init(:) =  inv_nmon * sum( r0(:,:), 2)
 
 end subroutine
 
