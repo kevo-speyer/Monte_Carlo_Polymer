@@ -63,7 +63,7 @@
 @timestamp rot 0
 @timestamp font 0
 @timestamp char size 1.000000
-@timestamp def "Thu Nov 24 18:41:01 2016"
+@timestamp def "Thu Nov 24 19:42:12 2016"
 @r0 off
 @link r0 to g0
 @r0 type above
@@ -306,7 +306,9 @@
 @type xy
 0.01 1.66518e-08
 0.1 2.42322e-06
+0.25 4.05481e-06
 0.5 5.67691e-06
+0.75 2.46409e-06
 1 8.91669e-07
 2 1.2562e-07
 5 7.95597e-09
