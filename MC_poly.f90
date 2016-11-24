@@ -29,8 +29,6 @@ do i_time = 1, n_time
 !   Try displacement
     call move_attempt()
     
-    call get_energy()
-
 ! Accept move with proba = min(1,exp( -delta_E/kT ) )
     call MC_acceptance()
 
@@ -136,18 +134,13 @@ use ziggurat
 implicit none
 real(kind=8) :: prob_rej
 
-!Difference energy between old and new config
-delta_energy = energy - old_energy
+prob_rej = 1. - exp(-delta_energy / Temp)
 
-! If energy lowers, accept move
-if (delta_energy .gt. 0.) then
-    prob_rej = 1. - exp(-delta_energy / Temp)
-    if( uni() .le. prob_rej) then !If change is rejected
-        !Undo move
-        r0(:,mv_mon) = r0(:,mv_mon) - dr_mv(:)
-        energy = old_energy
-    end if    
-end if
+if( .not. (uni() .le. prob_rej) ) then !If change is not rejected (so, accepted)
+    energy = energy + delta_energy !change energy
+    r0(:,mv_mon) = r0(:,mv_mon) + dr_mv(:) !perform movement
+end if    
+
 end subroutine
 
 
@@ -165,10 +158,22 @@ do i_dim = 1, n_dim
     dr_mv(i_dim) = a_box * ( uni() - .5 )
 end do
 
-!Perform move
+!get delta_energy
+call get_delta_energy()
 
-r0(:,mv_mon) = r0(:,mv_mon) + dr_mv(:)
+end subroutine
 
+subroutine get_delta_energy()
+use com_vars
+implicit none
+
+delta_energy = 0
+if (mv_mon.ne.1)     delta_energy = delta_energy + .5 * k_spr * sum( ( r0(:,mv_mon) + dr_mv(:) - r0(:,mv_mon-1) ) ** 2 )
+if (mv_mon.ne.n_mon) delta_energy = delta_energy + .5 * k_spr * sum( ( r0(:,mv_mon) + dr_mv(:) - r0(:,mv_mon+1) ) ** 2 )  
+if (mv_mon.ne.1)     delta_energy = delta_energy - .5 * k_spr * sum( ( r0(:,mv_mon)            - r0(:,mv_mon-1) ) ** 2 )
+if (mv_mon.ne.n_mon) delta_energy = delta_energy - .5 * k_spr * sum( ( r0(:,mv_mon)            - r0(:,mv_mon+1) ) ** 2 ) 
+
+!print*,delta_energy
 end subroutine
 
 subroutine get_energy()
