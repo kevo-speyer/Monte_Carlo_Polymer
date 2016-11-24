@@ -1,4 +1,5 @@
 program MC_chain
+include 'prepro.h'
 use com_vars
 use ziggurat
 
@@ -41,6 +42,10 @@ end do
 
 call save_positions()
 
+#ifdef g3
+    call get_g3()
+#endif
+
 end program
 
 subroutine read_init_pos()
@@ -55,7 +60,7 @@ if(n_dim.ne.3) then
 end if
 
 do i_mon = 1, n_mon
-    read(16,"(3f9.4)") r0(1,i_mon), r0(2,i_mon), r0(3,i_mon)
+    read(16,"(3f15.8)") r0(1,i_mon), r0(2,i_mon), r0(3,i_mon)
 end do
 
 close(16)
@@ -69,7 +74,7 @@ implicit none
 open (unit=14, file='last_config.dat', status='unknown')
 
 do i_mon = 1, n_mon
-    write(14,"(3f15.4)" ) r0(:,i_mon)
+    write(14,"(3f15.8)" ) r0(:,i_mon)
 end do
 
 close(14)
@@ -107,11 +112,21 @@ call get_rend()
 !Save Energy
 write(60,*) i_time, energy
 
-!Save Chain Center of mass
-write(70,"(I15.1,3f13.4)" ) i_time,  r_cm(:) - r_cm_init(:) !sum ( ( r_cm(:) - r_cm_init(:) )**2 )
+!Save Chain Center of mass to calculate g3
+write(73,"(I15.1,1f13.8)" ) i_time, sum ( ( r_cm(:) - r_cm_init(:) )**2 ) !r_cm(:) - r_cm_init(:) !
+
+!Save mean bead displacement to calculate g1
+write(71,"(I15.1,1f13.8)" ) i_time, sum ( ( r0(:,1) - r0_init(:,1) )**2 )
+
+#ifdef g3 
+    r_cm_t(:,j_save) = r_cm(:)
+    j_save = j_save + 1
+#endif
+
 
 !Save Rend vector
-write(71,"(I15.1,3f9.4)" ) i_time, r_end(:)
+write(81,"(I15.1,3f15.8)" ) i_time, r_end(:)
+
 end subroutine
 
 subroutine MC_acceptance()
@@ -179,9 +194,11 @@ implicit none
 real(kind=8) signo, dr
 real(kind=8),dimension(n_dim) :: r_center
 
-allocate( r0(n_dim,n_mon), boundary(n_dim), dr_mv(n_dim) ) 
+allocate( r0(n_dim,n_mon),r0_init(n_dim,n_mon), boundary(n_dim), dr_mv(n_dim) ) 
 allocate( r_end(n_dim), r_cm(n_dim), r_cm_init(n_dim) )
-
+#ifdef g3
+    allocate (r_cm_t(n_dim,int(n_time/n_save)+1), g3(int(n_time/n_save))
+#endif
 !Initiate random seed
 call init_rand_seed()
 
@@ -226,7 +243,7 @@ end select
 
 !Set initial position
 r_cm_init(:) =  inv_nmon * sum( r0(:,:), 2)
-
+r0_init = r0
 end subroutine
 
 
@@ -273,3 +290,34 @@ close(68)
 
 end subroutine
 
+#ifdef g3
+subroutine get_g3()
+use com_vars
+implicit none
+include 'prepro.h'
+integer :: n
+real (kind=8), dimension(n), intent(out)  :: c
+integer ,dimension(:), allocatable :: n_corr
+integer :: i,j
+real (kind=8) :: x_mean = 0, x_var = 0
+
+n = int(n_time/n_save)
+allocate(n_corr(n))
+!Initialize counters to  0
+g3(:) = 0. 
+n_corr = 0
+
+!Now calculate the variance and autocorrelation
+do i=1,n-1 
+    do j=i+1,n
+        g3(j-i) =  sum( (r_cm_t(:,i) - r_cm_t(:,j) )**2 ) !c(j-i+1) + y(i)*y(j) ! Accumulate covariance for each lag
+        n_corr(j-i) = n_corr(j-i) + 1 !Count cases for each lag
+    end do
+end do
+
+do i=1,n-1
+    g3(i) = g3(i) / float(n_corr(i)) ! Get mean Covariance
+end do
+
+end subroutine 
+#endif
