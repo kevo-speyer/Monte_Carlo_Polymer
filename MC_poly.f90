@@ -1,10 +1,14 @@
 program MC_chain
-include 'prepro.h'
+#include "prepro.h"
 use com_vars
 use ziggurat
 
 implicit none
 
+!DEBUG
+#ifdef anchor
+print*, "anchor definded"
+#endif
 ! Read input parameters
 call read_input()
 
@@ -295,17 +299,19 @@ close(68)
 
 end subroutine
 
-#ifdef g3
+
 subroutine get_g3()
 use com_vars
+#include "prepro.h"
+#ifdef g3
+
 implicit none
-include 'prepro.h'
+
 integer :: n
 real (kind=8), dimension(n), intent(out)  :: c
 integer ,dimension(:), allocatable :: n_corr
 integer :: i,j
 real (kind=8) :: x_mean = 0, x_var = 0
-
 n = int(n_time/n_save)
 allocate(n_corr(n))
 !Initialize counters to  0
@@ -323,6 +329,6 @@ end do
 do i=1,n-1
     g3(i) = g3(i) / float(n_corr(i)) ! Get mean Covariance
 end do
-
-end subroutine 
 #endif
+end subroutine 
+

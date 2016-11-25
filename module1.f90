@@ -1,6 +1,6 @@
 module com_vars
 !Module with all global
-include 'prepro.h'
+#include "prepro.h"
 implicit none
 integer :: n_save, i_mon, init_mode, j_mon, n_mon, i_time, n_time, i_dim, n_dim, mv_mon
 real(kind=8) , dimension(:,:), allocatable :: r0, r0_init
