@@ -25,22 +25,33 @@ call init_system(init_mode) ! 1 is random walk;
 ! Meassure Energy
 call get_energy()
 
+#ifdef anchor
+call get_anch_ener()
+#endif
+
 !begin time loop
 do i_time = 1, n_time
     
-    old_energy = energy ! Store energy befor move trial
-
 !   Try displacement
     call move_attempt()
     
 ! Accept move with proba = min(1,exp( -delta_E/kT ) )
     call MC_acceptance()
+    
+#ifdef anchor
+
+    call hopp_attempt() ! Try hopping attempt
+    
+    call MC_hopp_acc() !Accept with probability = min(1,exp( -delta_energy/kT ) )
+
+#endif
 
 ! Save data every n_mon trials
     if ( mod(i_time,n_save) .eq. 0 ) then
         call save_data()
     end if
-end do
+
+end do ! End time loop
 
 call save_positions()
 
@@ -149,6 +160,7 @@ end subroutine
 
 
 subroutine move_attempt()
+#include "prepro.h"
 use com_vars
 use ziggurat
 
@@ -167,7 +179,77 @@ call get_delta_energy()
 
 end subroutine
 
+
+subroutine hopp_attempt()
+#include "prepro.h"
+#ifdef anchor
+use com_vars
+use ziggurat
+
+implicit none
+
+!Pick random anchor
+mv_anchor = int( uni() * float(n_anchor) ) + 1 
+
+!Set random hop
+if( uni() .le. 0.5) then
+    hop_mv = -1
+else
+    hop_mv = 1
+end if
+
+!CHECK IF j_mon = attach(mv_anchor) + hop_mv is occupied.
+
+!CHECK IF j_mon = attach(mv_anchor) + hop_mv is 0 or n_mon + 1
+
+!get delta_energy
+call get_anch_delta_energy()
+
+#endif
+
+end subroutine
+
+subroutine get_anch_delta_energy()
+#include "prepro.h"
+#ifdef anchor
+use com_vars
+implicit none
+
+delta_energy = 0
+
+delta_energy = delta_energy - .5 * k_sl_sp * sum( ( anch_r0(:,mv_anchor) - r0(:,attach(mv_anchor)) ) ** 2 )
+
+delta_energy = delta_energy + .5 * k_sl_sp * sum( ( anch_r0(:,mv_anchor) - r0(:,attach(mv_anchor) + hop_mv) ) ** 2 )
+
+#endif
+end subroutine
+
+subroutine MC_hopp_acc()
+#include "prepro.h"
+#ifdef anchor
+use com_vars
+use ziggurat
+
+implicit none
+real(kind=8) :: prob_rej
+
+prob_rej = 1. - exp(-delta_energy / Temp)
+
+if( .not. (uni() .le. prob_rej) ) then !If change is not rejected (so, accepted)
+    sl_sp_ener = sl_sp_ener + delta_energy !change energy
+    anchor(attach(mv_anchor)) = 0 ! free bead number = attach(mv_anchor)     
+    attach(mv_anchor) = attach(mv_anchor) + hop_mv !perform movement
+    anchor(attach(mv_anchor)) = mv_anchor
+end if    
+
+#endif
+end subroutine
+
+
+
+
 subroutine get_delta_energy()
+#include "prepro.h"
 use com_vars
 implicit none
 
@@ -176,6 +258,15 @@ if (mv_mon.ne.1)     delta_energy = delta_energy + .5 * k_spr * sum( ( r0(:,mv_m
 if (mv_mon.ne.n_mon) delta_energy = delta_energy + .5 * k_spr * sum( ( r0(:,mv_mon) + dr_mv(:) - r0(:,mv_mon+1) ) ** 2 )  
 if (mv_mon.ne.1)     delta_energy = delta_energy - .5 * k_spr * sum( ( r0(:,mv_mon)            - r0(:,mv_mon-1) ) ** 2 )
 if (mv_mon.ne.n_mon) delta_energy = delta_energy - .5 * k_spr * sum( ( r0(:,mv_mon)            - r0(:,mv_mon+1) ) ** 2 ) 
+
+#ifdef anchor
+!Get delta energy from anchor point to monomer mn_mon
+if ( anchor(mv_mon) .ne. 0 ) then ! if monomer is attached to an anchor point
+    delta_energy = delta_energy + .5 * k_sl_sp * sum( ( r0(:,mv_mon) + dr_mv(:) - anch_r0(:,anchor(mv_mon)) ) **2 )
+    delta_energy = delta_energy - .5 * k_sl_sp * sum( ( r0(:,mv_mon)            - anch_r0(:,anchor(mv_mon)) ) **2 )   
+end if
+
+#endif
 
 !print*,delta_energy
 end subroutine
@@ -196,7 +287,25 @@ energy = energy * 0.5
 !write(61,*) energy
 end subroutine
 
+subroutine get_anch_ener()
+#include "propro.h"
+use com_vars
+implicit none
+
+sl_sp_ener = 0
+
+!loop over anchor points
+do i_anchor = 1, n_anchor
+    sl_sp_ener = sl_sp_ener + k_sl_sp * sum( ( anch_r0(:,i_anch) - r0(:,attach(i_anch)) ) ** 2 )     
+end do
+
+sl_sp_ener = sl_sp_ener * 0.5
+
+end subroutine
+
+
 subroutine init_system()
+#include "prepro.h"
 use com_vars
 use ziggurat
 implicit none
@@ -208,6 +317,18 @@ allocate( r_end(n_dim), r_cm(n_dim), r_cm_init(n_dim) )
 #ifdef g3
     allocate (r_cm_t(n_dim,int(n_time/n_save)+1), g3(int(n_time/n_save))
 #endif
+
+k_spr = 3. * ( float( n_mon ) - 1. ) / Rend2
+
+#ifdef anchor
+    k_sl_sp = 0.5 * k_spr
+    n_anchor = int( float (n_mon) / 4. )
+    if(mod(n_anchor,2).ne.0) n_anchor = n_anchor + 1 ! Make shure n_anchor is
+                                                     !even
+    allocate( attach(n_anchor), anchor(n_mon) )
+    allocate( anch_r0(n_dim,n_anchor) )  
+#endif anchor
+
 !Initiate random seed
 call init_rand_seed()
 
@@ -250,7 +371,35 @@ call read_init_pos()
 
 end select
 
-!Set initial position
+#ifdef anchor
+!Initiate anchor points
+
+!Randomly in simulation box:
+do i_anchor = 1, n_anchor
+    do i_dim = 1, n_dim
+        anch_r0(i_dim, i_anchor) = boundary(i_dim) * uni()
+    end do
+end do
+
+anchor(:) = 0
+!Set which monomers are anchored
+do i_anchor = 1, n_anchor !loop anchor points
+
+    j_mon = int( uni() * float(n_mon) ) + 1 !select monomer to be attached to anchor point i_anchor
+    
+    do while( anchor( j_mon ) .ne. 0 )  !If monomer is not free, try again
+        j_mon = int( uni() * float(n_mon) ) + 1
+    end do
+
+    anchor( j_mon ) = i_anchor ! j_mon is free, anchor j_mon to i_anchor
+    attach(i_anchor) = j_mon
+   
+end do
+
+#endif
+
+
+!Save initial position
 r_cm_init(:) =  inv_nmon * sum( r0(:,:), 2)
 r0_init = r0
 end subroutine
@@ -273,7 +422,6 @@ read(53,*) Temp
 read(53,*) n_save
 close(53)
 
-k_spr = 3. * ( float( n_mon ) - 1. ) / Rend2
 end subroutine
 
       
