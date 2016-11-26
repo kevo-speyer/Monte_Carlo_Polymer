@@ -42,7 +42,7 @@ do i_time = 1, n_time
 
     call hopp_attempt() ! Try hopping attempt
     
-    call MC_hopp_acc() !Accept with probability = min(1,exp( -delta_energy/kT ) )
+    if (.not. rej_mv ) call MC_hopp_acc() !Accept with probability = min(1,exp( -delta_energy/kT ) )
 
 #endif
 
@@ -198,16 +198,98 @@ else
     hop_mv = 1
 end if
 
-!CHECK IF j_mon = attach(mv_anchor) + hop_mv is occupied.
+j_mon = attach(mv_anchor) + hop_mv ! New Monomer to anchor 
 
 !CHECK IF j_mon = attach(mv_anchor) + hop_mv is 0 or n_mon + 1
+if ( (j_mon.eq.0) .or. (j_mon.eq.n_mon+1)) then
+    call tube_renewal() !New anchor monomer is out of the chain, perform tube_renewal
+    call constraint_release() ! and constraint_release with probability 1
+
+    rej_mv = .True. !Reject Hopping
+
+!CHECK IF j_mon = attach(mv_anchor) + hop_mv is occupied.
+else if( anchor(j_mon) .ne. 0 ) then 
+    rej_mv = .True. 
+else
+    rej_mv = .False.
+end if
 
 !get delta_energy
-call get_anch_delta_energy()
+if (.not. rej_mv) call get_anch_delta_energy()
 
 #endif
 
 end subroutine
+
+
+subroutine tube_renewal()
+#include "prepro.h"
+#ifdef anchor
+use com_vars
+use ziggurat
+implicit none
+integer :: end_mon
+
+!Release end bead attachment
+anchor( attach(mv_anchor) ) = 0 
+
+!Choose a free chain end monomer (end_mon) 
+if( uni() .le. 0.5) then
+    end_mon = 1
+    if ( anchor(end_mon) .ne. 0) end_mon = n_mon
+else
+    end_mon = n_mon
+    if ( anchor(end_mon) .ne. 0) end_mon = 1 
+end if
+
+!Redo lists
+
+attach(mv_anchor) = end_mon
+anchor( end_mon ) = mv_anchor
+
+! create a new anchor point according to
+! anch_r0(i_dim,mv_anch) = std_dev * rnor() + r0(i_dim,end_mon)
+
+!WARNING std_dev NOT DEFINED!!!!!!!!!
+do i_dim = 1, n_dim
+    anch_r0(i_dim,mv_anch) = std_dev * rnor() + r0(i_dim,end_mon)
+end do
+
+#endif /*anchor*/
+end subroutine tube_renewal
+
+subroutine constraint_release()
+#include "prepro.h"
+#ifdef anchor
+use com_vars
+use ziggurat
+implicit none
+integer :: new_mon, nei_mon, 
+ 
+
+!Release neighbour monomer attachment
+nei_mon = attach( anch_neigh( mv_anchor ) )
+anchor( nei_mon ) = 0
+
+!Choose a new monomer bead
+new_mon = int( float(n_mon) * uni() ) + 1
+
+do while( anchor(new_mon) .ne. 0 ) 
+    new_mon = int( float(n_mon) * uni() ) + 1
+end do
+
+!Attach to new monomer bead
+attach( anch_neigh( mv_anchor ) ) = new_mon
+anchor( new_mon ) = anch_neigh( mv_anchor ) !new_mon is anchored to neighbour of mv_anchor
+
+! Set ach_r0
+do i_dim = 1, n_dim
+    anch_r0(i_dim,anch_neigh( mv_anchor )) = std_dev * rnor() + r0(i_dim,new_mon)
+end do
+
+#endif /*anchor*/
+end subroutine constraint_release
+
 
 subroutine get_anch_delta_energy()
 #include "prepro.h"
@@ -322,10 +404,11 @@ k_spr = 3. * ( float( n_mon ) - 1. ) / Rend2
 
 #ifdef anchor
     k_sl_sp = 0.5 * k_spr
+    std_dev = sqrt( 1. / k_sl_sp )
     n_anchor = int( float (n_mon) / 4. )
     if(mod(n_anchor,2).ne.0) n_anchor = n_anchor + 1 ! Make shure n_anchor is
                                                      !even
-    allocate( attach(n_anchor), anchor(n_mon) )
+    allocate( attach(n_anchor), anchor(n_mon), anch_neigh(n_anchor) )
     allocate( anch_r0(n_dim,n_anchor) )  
 #endif anchor
 
@@ -394,6 +477,16 @@ do i_anchor = 1, n_anchor !loop anchor points
     anchor( j_mon ) = i_anchor ! j_mon is free, anchor j_mon to i_anchor
     attach(i_anchor) = j_mon
    
+end do
+
+!Set neighbors of anchors to perform tube_renewal and coinstraint_release
+
+do i_anchor = 1, n_anchor !loop anchor points
+    if ( mod(i_anchor,2) .eq. 0) !if anchor point  is pair
+        anch_neigh( i_anchor ) = i_anchor - 1 !neighbour is previous anch
+    else ! anchor point is odd
+        anch_neigh( i_anchor ) = i_anchor + 1 ! neighbour is next anch
+    end if
 end do
 
 #endif

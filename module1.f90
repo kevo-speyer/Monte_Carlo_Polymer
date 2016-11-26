@@ -15,7 +15,7 @@ integer :: j_save=1
 #endif
 
 #ifdef anchor
-integer , dimension(:), allocatable :: attach, anchor
+integer , dimension(:), allocatable :: attach, anchor, anch_neigh
 !attach(i_anchor) = return the number of the bead attached to anchor i_anchor
 !anchor(i_mon) = returns the number of anchor attached to bead i_mon. Returns 0
 !if i_mon is not attached to any anchor
@@ -23,8 +23,8 @@ real(kind=8) , dimension(:,:), allocatable ::  anch_r0 !anchoring points
 !positions
 
 integer :: hop_mv, i_anchor, n_anchor, mv_anchor ! Number of anchor points
-real(kind=8) :: sl_sp_ener, k_sl_sp  !Total slip-link energy, slip_spring constant
-
+real(kind=8) :: sl_sp_ener, k_sl_sp, std_dev  !Total slip-link energy, slip_spring constant
+logical :: rej_mv
 #endif
 end module com_vars
  
