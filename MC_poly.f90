@@ -6,7 +6,7 @@ use ziggurat
 implicit none
 
 !DEBUG
-#ifdef anchor
+#ifdef SLIP_LINK
 print*, "anchor definded"
 #endif
 ! Read input parameters
@@ -25,7 +25,7 @@ call init_system(init_mode) ! 1 is random walk;
 ! Meassure Energy
 call get_energy()
 
-#ifdef anchor
+#ifdef SLIP_LINK
 call get_anch_ener()
 #endif
 
@@ -38,7 +38,7 @@ do i_time = 1, n_time
 ! Accept move with proba = min(1,exp( -delta_E/kT ) )
     call MC_acceptance()
     
-#ifdef anchor
+#ifdef SLIP_LINK
 
     call hopp_attempt() ! Try hopping attempt
     
@@ -182,7 +182,7 @@ end subroutine
 
 subroutine hopp_attempt()
 #include "prepro.h"
-#ifdef anchor
+#ifdef SLIP_LINK
 use com_vars
 use ziggurat
 
@@ -224,7 +224,7 @@ end subroutine
 
 subroutine tube_renewal()
 #include "prepro.h"
-#ifdef anchor
+#ifdef SLIP_LINK
 use com_vars
 use ziggurat
 implicit none
@@ -252,7 +252,7 @@ anchor( end_mon ) = mv_anchor
 
 !WARNING std_dev NOT DEFINED!!!!!!!!!
 do i_dim = 1, n_dim
-    anch_r0(i_dim,mv_anch) = std_dev * rnor() + r0(i_dim,end_mon)
+    anch_r0(i_dim,mv_anchor) = std_dev * rnor() + r0(i_dim,end_mon)
 end do
 
 #endif /*anchor*/
@@ -260,13 +260,12 @@ end subroutine tube_renewal
 
 subroutine constraint_release()
 #include "prepro.h"
-#ifdef anchor
+#ifdef SLIP_LINK
 use com_vars
 use ziggurat
 implicit none
-integer :: new_mon, nei_mon, 
+integer :: new_mon, nei_mon 
  
-
 !Release neighbour monomer attachment
 nei_mon = attach( anch_neigh( mv_anchor ) )
 anchor( nei_mon ) = 0
@@ -293,7 +292,7 @@ end subroutine constraint_release
 
 subroutine get_anch_delta_energy()
 #include "prepro.h"
-#ifdef anchor
+#ifdef SLIP_LINK
 use com_vars
 implicit none
 
@@ -308,7 +307,7 @@ end subroutine
 
 subroutine MC_hopp_acc()
 #include "prepro.h"
-#ifdef anchor
+#ifdef SLIP_LINK
 use com_vars
 use ziggurat
 
@@ -341,7 +340,7 @@ if (mv_mon.ne.n_mon) delta_energy = delta_energy + .5 * k_spr * sum( ( r0(:,mv_m
 if (mv_mon.ne.1)     delta_energy = delta_energy - .5 * k_spr * sum( ( r0(:,mv_mon)            - r0(:,mv_mon-1) ) ** 2 )
 if (mv_mon.ne.n_mon) delta_energy = delta_energy - .5 * k_spr * sum( ( r0(:,mv_mon)            - r0(:,mv_mon+1) ) ** 2 ) 
 
-#ifdef anchor
+#ifdef SLIP_LINK
 !Get delta energy from anchor point to monomer mn_mon
 if ( anchor(mv_mon) .ne. 0 ) then ! if monomer is attached to an anchor point
     delta_energy = delta_energy + .5 * k_sl_sp * sum( ( r0(:,mv_mon) + dr_mv(:) - anch_r0(:,anchor(mv_mon)) ) **2 )
@@ -370,7 +369,7 @@ energy = energy * 0.5
 end subroutine
 
 subroutine get_anch_ener()
-#include "propro.h"
+#include "prepro.h"
 use com_vars
 implicit none
 
@@ -378,7 +377,7 @@ sl_sp_ener = 0
 
 !loop over anchor points
 do i_anchor = 1, n_anchor
-    sl_sp_ener = sl_sp_ener + k_sl_sp * sum( ( anch_r0(:,i_anch) - r0(:,attach(i_anch)) ) ** 2 )     
+    sl_sp_ener = sl_sp_ener + k_sl_sp * sum( ( anch_r0(:,i_anchor) - r0(:,attach(i_anchor)) ) ** 2 )     
 end do
 
 sl_sp_ener = sl_sp_ener * 0.5
@@ -402,7 +401,7 @@ allocate( r_end(n_dim), r_cm(n_dim), r_cm_init(n_dim) )
 
 k_spr = 3. * ( float( n_mon ) - 1. ) / Rend2
 
-#ifdef anchor
+#ifdef SLIP_LINK
     k_sl_sp = 0.5 * k_spr
     std_dev = sqrt( 1. / k_sl_sp )
     n_anchor = int( float (n_mon) / 4. )
@@ -454,7 +453,7 @@ call read_init_pos()
 
 end select
 
-#ifdef anchor
+#ifdef SLIP_LINK
 !Initiate anchor points
 
 !Randomly in simulation box:
@@ -482,7 +481,7 @@ end do
 !Set neighbors of anchors to perform tube_renewal and coinstraint_release
 
 do i_anchor = 1, n_anchor !loop anchor points
-    if ( mod(i_anchor,2) .eq. 0) !if anchor point  is pair
+    if ( mod(i_anchor,2) .eq. 0) then !if anchor point  is pair
         anch_neigh( i_anchor ) = i_anchor - 1 !neighbour is previous anch
     else ! anchor point is odd
         anch_neigh( i_anchor ) = i_anchor + 1 ! neighbour is next anch

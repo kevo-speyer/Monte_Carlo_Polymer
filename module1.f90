@@ -14,7 +14,7 @@ real(kind=8) , dimension(:), allocatable :: g3
 integer :: j_save=1
 #endif
 
-#ifdef anchor
+#ifdef SLIP_LINK
 integer , dimension(:), allocatable :: attach, anchor, anch_neigh
 !attach(i_anchor) = return the number of the bead attached to anchor i_anchor
 !anchor(i_mon) = returns the number of anchor attached to bead i_mon. Returns 0
