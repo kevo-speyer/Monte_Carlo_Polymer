@@ -1,0 +1,101 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+DP	ziggurat.f90	/^   INTEGER,  PARAMETER  ::  DP=/;"	v	module:Ziggurat
+Lx	module1.f90	/^real(kind=8) :: Rend2, Temp, a_box, Lx,/;"	v	module:com_vars
+Ly	module1.f90	/^real(kind=8) :: Rend2, Temp, a_box, Lx, Ly,/;"	v	module:com_vars
+Lz	module1.f90	/^real(kind=8) :: Rend2, Temp, a_box, Lx, Ly, Lz,/;"	v	module:com_vars
+MC_acceptance	MC_poly.f90	/^subroutine MC_acceptance(/;"	s
+MC_chain	MC_poly.f90	/^program MC_chain$/;"	p
+MC_hopp_acc	MC_poly.f90	/^subroutine MC_hopp_acc(/;"	s
+Rend2	module1.f90	/^real(kind=8) :: Rend2,/;"	v	module:com_vars
+Temp	module1.f90	/^real(kind=8) :: Rend2, Temp,/;"	v	module:com_vars
+Ziggurat	ziggurat.f90	/^MODULE Ziggurat$/;"	m
+a_box	module1.f90	/^real(kind=8) :: Rend2, Temp, a_box,/;"	v	module:com_vars
+anch_neigh	module1.f90	/^integer , dimension(:), allocatable :: attach, anchor, anch_neigh$/;"	v	module:com_vars
+anch_r0	module1.f90	/^real(kind=8) , dimension(:,:), allocatable ::  anch_r0 /;"	v	module:com_vars
+anchor	module1.f90	/^integer , dimension(:), allocatable :: attach, anchor,/;"	v	module:com_vars
+attach	module1.f90	/^integer , dimension(:), allocatable :: attach,/;"	v	module:com_vars
+boundary	module1.f90	/^real(kind=8) , dimension(:), allocatable :: boundary,/;"	v	module:com_vars
+com_vars	module1.f90	/^module com_vars$/;"	m
+constraint_release	MC_poly.f90	/^subroutine constraint_release(/;"	s
+de	ziggurat.f90	/^                            q,                    de=/;"	v	module:Ziggurat
+delta_energy	module1.f90	/^real(kind=8) :: Rend2, Temp, a_box, Lx, Ly, Lz, energy, delta_energy,/;"	v	module:com_vars
+delta_sl_sp_ener	module1.f90	/^real(kind=8) :: sl_sp_ener, delta_sl_sp_ener,/;"	v	module:com_vars
+dn	ziggurat.f90	/^   REAL(DP)             ::  dn=/;"	v	module:Ziggurat
+dr_mv	module1.f90	/^real(kind=8) , dimension(:), allocatable :: boundary, dr_mv,/;"	v	module:com_vars
+energy	module1.f90	/^real(kind=8) :: Rend2, Temp, a_box, Lx, Ly, Lz, energy,/;"	v	module:com_vars
+fe	ziggurat.f90	/^   REAL(DP), SAVE       ::  wn(0:127), fn(0:127), we(0:255), fe(/;"	v	module:Ziggurat
+fn	ziggurat.f90	/^   REAL(DP), SAVE       ::  wn(0:127), fn(/;"	v	module:Ziggurat
+g3	module1.f90	/^real(kind=8) , dimension(:), allocatable :: g3$/;"	v	module:com_vars
+get_anch_delta_energy	MC_poly.f90	/^subroutine get_anch_delta_energy(/;"	s
+get_anch_ener	MC_poly.f90	/^subroutine get_anch_ener(/;"	s
+get_delta_energy	MC_poly.f90	/^subroutine get_delta_energy(/;"	s
+get_energy	MC_poly.f90	/^subroutine get_energy(/;"	s
+get_g3	MC_poly.f90	/^subroutine get_g3(/;"	s
+get_rcm	MC_poly.f90	/^subroutine get_rcm(/;"	s
+get_rend	MC_poly.f90	/^subroutine get_rend(/;"	s
+half	ziggurat.f90	/^   REAL(DP), PARAMETER  ::  m1=2147483648.0_DP,   m2=2147483648.0_DP,      &$/;"	v	module:Ziggurat
+hop_mv	module1.f90	/^integer :: hop_mv,/;"	v	module:com_vars
+hopp_attempt	MC_poly.f90	/^subroutine hopp_attempt(/;"	s
+hz	ziggurat.f90	/^                            ke(0:255), hz$/;"	v	module:Ziggurat
+i_anchor	module1.f90	/^integer :: hop_mv, i_anchor,/;"	v	module:com_vars
+i_dim	module1.f90	/^integer :: n_save, i_mon, init_mode, j_mon, n_mon, i_time, n_time, i_dim,/;"	v	module:com_vars
+i_mon	module1.f90	/^integer :: n_save, i_mon,/;"	v	module:com_vars
+i_time	module1.f90	/^integer :: n_save, i_mon, init_mode, j_mon, n_mon, i_time,/;"	v	module:com_vars
+init_mode	module1.f90	/^integer :: n_save, i_mon, init_mode,/;"	v	module:com_vars
+init_pos	module1.f90	/^logical :: init_pos$/;"	v	module:com_vars
+init_rand_seed	MC_poly.f90	/^subroutine init_rand_seed(/;"	s
+init_system	MC_poly.f90	/^subroutine init_system(/;"	s
+initialized	ziggurat.f90	/^   LOGICAL,  SAVE       ::  initialized=/;"	v	module:Ziggurat
+inv_nmon	module1.f90	/^real(kind=8) :: Rend2, Temp, a_box, Lx, Ly, Lz, energy, delta_energy, old_energy, k_spr, inv_nmon$/;"	v	module:com_vars
+iz	ziggurat.f90	/^   INTEGER,  SAVE       ::  iz,/;"	v	module:Ziggurat
+j_mon	module1.f90	/^integer :: n_save, i_mon, init_mode, j_mon,/;"	v	module:com_vars
+j_save	module1.f90	/^integer :: j_save=/;"	v	module:com_vars
+jsr	ziggurat.f90	/^   INTEGER,  SAVE       ::  iz, jz, jsr=/;"	v	module:Ziggurat
+jz	ziggurat.f90	/^   INTEGER,  SAVE       ::  iz, jz,/;"	v	module:Ziggurat
+k_sl_sp	module1.f90	/^real(kind=8) :: sl_sp_ener, delta_sl_sp_ener,  k_sl_sp,/;"	v	module:com_vars
+k_spr	module1.f90	/^real(kind=8) :: Rend2, Temp, a_box, Lx, Ly, Lz, energy, delta_energy, old_energy, k_spr,/;"	v	module:com_vars
+ke	ziggurat.f90	/^   INTEGER,  SAVE       ::  iz, jz, jsr=123456789, kn(0:127),              &$/;"	v	module:Ziggurat
+kn	ziggurat.f90	/^   INTEGER,  SAVE       ::  iz, jz, jsr=123456789, kn(/;"	v	module:Ziggurat
+m1	ziggurat.f90	/^   REAL(DP), PARAMETER  ::  m1=/;"	v	module:Ziggurat
+m2	ziggurat.f90	/^   REAL(DP), PARAMETER  ::  m1=2147483648.0_DP,   m2=/;"	v	module:Ziggurat
+move_attempt	MC_poly.f90	/^subroutine move_attempt(/;"	s
+mv_anchor	module1.f90	/^integer :: hop_mv, i_anchor, n_anchor, mv_anchor /;"	v	module:com_vars
+mv_mon	module1.f90	/^integer :: n_save, i_mon, init_mode, j_mon, n_mon, i_time, n_time, i_dim, n_dim, mv_mon$/;"	v	module:com_vars
+n_anchor	module1.f90	/^integer :: hop_mv, i_anchor, n_anchor,/;"	v	module:com_vars
+n_dim	module1.f90	/^integer :: n_save, i_mon, init_mode, j_mon, n_mon, i_time, n_time, i_dim, n_dim,/;"	v	module:com_vars
+n_mon	module1.f90	/^integer :: n_save, i_mon, init_mode, j_mon, n_mon,/;"	v	module:com_vars
+n_save	module1.f90	/^integer :: n_save,/;"	v	module:com_vars
+n_time	module1.f90	/^integer :: n_save, i_mon, init_mode, j_mon, n_mon, i_time, n_time,/;"	v	module:com_vars
+old_energy	module1.f90	/^real(kind=8) :: Rend2, Temp, a_box, Lx, Ly, Lz, energy, delta_energy, old_energy,/;"	v	module:com_vars
+q	ziggurat.f90	/^                            vn=0.00991256303526217_DP,                     &$/;"	v	module:Ziggurat
+r0	module1.f90	/^real(kind=8) , dimension(:,:), allocatable :: r0,/;"	v	module:com_vars
+r0_init	module1.f90	/^real(kind=8) , dimension(:,:), allocatable :: r0, r0_init$/;"	v	module:com_vars
+r_cm	module1.f90	/^real(kind=8) , dimension(:), allocatable :: boundary, dr_mv, r_cm,/;"	v	module:com_vars
+r_cm_init	module1.f90	/^real(kind=8) , dimension(:), allocatable :: boundary, dr_mv, r_cm,r_cm_init,/;"	v	module:com_vars
+r_cm_t	module1.f90	/^real(kind=8) , dimension(:,:), allocatable :: r_cm_t$/;"	v	module:com_vars
+r_end	module1.f90	/^real(kind=8) , dimension(:), allocatable :: boundary, dr_mv, r_cm,r_cm_init, r_end$/;"	v	module:com_vars
+read_init_pos	MC_poly.f90	/^subroutine read_init_pos(/;"	s
+read_input	MC_poly.f90	/^subroutine read_input(/;"	s
+rej_mv	module1.f90	/^logical :: rej_mv$/;"	v	module:com_vars
+rexp	ziggurat.f90	/^FUNCTION rexp(/;"	f	module:Ziggurat
+rnor	ziggurat.f90	/^FUNCTION rnor(/;"	f	module:Ziggurat
+save_data	MC_poly.f90	/^subroutine save_data(/;"	s
+save_positions	MC_poly.f90	/^subroutine save_positions(/;"	s
+shr3	ziggurat.f90	/^FUNCTION shr3(/;"	f	module:Ziggurat
+sl_sp_ener	module1.f90	/^real(kind=8) :: sl_sp_ener,/;"	v	module:com_vars
+slip_energy_check	MC_poly.f90	/^subroutine slip_energy_check(/;"	s
+std_dev	module1.f90	/^real(kind=8) :: sl_sp_ener, delta_sl_sp_ener,  k_sl_sp, std_dev /;"	v	module:com_vars
+te	ziggurat.f90	/^                            q,                    de=7.697117470131487_DP, &$/;"	v	module:Ziggurat
+tn	ziggurat.f90	/^   REAL(DP)             ::  dn=3.442619855899_DP, tn=/;"	v	module:Ziggurat
+tube_renewal	MC_poly.f90	/^subroutine tube_renewal(/;"	s
+uni	ziggurat.f90	/^FUNCTION uni(/;"	f	module:Ziggurat
+ve	ziggurat.f90	/^                            te=7.697117470131487_DP,                       &$/;"	v	module:Ziggurat
+vn	ziggurat.f90	/^   REAL(DP)             ::  dn=3.442619855899_DP, tn=3.442619855899_DP,    &$/;"	v	module:Ziggurat
+we	ziggurat.f90	/^   REAL(DP), SAVE       ::  wn(0:127), fn(0:127), we(/;"	v	module:Ziggurat
+wn	ziggurat.f90	/^   REAL(DP), SAVE       ::  wn(/;"	v	module:Ziggurat
+zigset	ziggurat.f90	/^SUBROUTINE zigset(/;"	s	module:Ziggurat

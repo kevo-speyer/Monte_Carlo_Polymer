@@ -5,7 +5,6 @@ use ziggurat
 
 implicit none
 
-!DEBUG
 #ifdef SLIP_LINK
 print*, "Slip Link definded"
 #endif
@@ -24,6 +23,21 @@ call init_system(init_mode) ! 1 is random walk;
                     ! 2 is uniformly random (no correlation between beads)
                     ! 3 is read old file with positions 
 
+!DEBUG
+print*, "r0"
+print*, r0
+print*,""
+#ifdef SLIP_LINK
+print*, "anch_r0"
+print*, anch_r0
+print*, ""
+print*, "anchor"
+print*, anchor
+print*, ""
+print*, "attach"
+print*, attach
+#endif
+
 print*, "System initialized correctly"
 
 ! Meassure Energy
@@ -32,6 +46,9 @@ call get_energy()
 #ifdef SLIP_LINK
 call get_anch_ener()
 #endif
+
+print*,"Energy calculated correctly"
+print*, ""
 
 !begin time loop
 do i_time = 1, n_time
@@ -59,6 +76,18 @@ end do ! End time loop
 
 call save_positions()
 
+! Meassure Energy
+call get_energy()
+print*, "Final bondend energy is: ", energy
+
+#ifdef SLIP_LINK
+call get_anch_ener()
+print*, "Final Slip_Link energy is: ", sl_sp_ener
+
+#endif
+
+print*, "Finishing run ok!"
+
 #ifdef g3
     call get_g3()
 #endif
@@ -80,11 +109,31 @@ do i_mon = 1, n_mon
     read(16,"(3f15.8)") r0(1,i_mon), r0(2,i_mon), r0(3,i_mon)
 end do
 
+!Read anchor points positions also
+#ifdef SLIP_LINK 
+
+do i_anchor = 1, n_anchor
+    read(16,"(3f15.8)" ) anch_r0(1,i_anchor), anch_r0(2,i_anchor), anch_r0(3,i_anchor) 
+end do
+
+!Read also link information attach, and anchor
+do i_anchor = 1, n_anchor
+    read(16,*) attach(i_anchor)
+end do
+
+do i_mon = 1, n_mon
+    read(16,*) anchor(i_mon)
+end do
+
+#endif
+
+
 close(16)
 
 end subroutine
 
 subroutine save_positions()
+#include "prepro.h"
 use com_vars
 implicit none
 
@@ -93,6 +142,24 @@ open (unit=14, file='last_config.dat', status='unknown')
 do i_mon = 1, n_mon
     write(14,"(3f15.8)" ) r0(:,i_mon)
 end do
+
+!Save anchor points positions also
+#ifdef SLIP_LINK 
+
+do i_anchor = 1, n_anchor
+    write(14,"(3f15.8)" ) anch_r0(:,i_anchor)
+end do
+
+!Save also link information attach, and anchor
+do i_anchor = 1, n_anchor
+    write(14,*) attach(i_anchor)
+end do
+
+do i_mon = 1, n_mon
+    write(14,*) anchor(i_mon)
+end do
+
+#endif
 
 close(14)
 
@@ -128,9 +195,9 @@ call get_rend()
 
 !Save Energy
 #ifdef SLIP_LINK
-write(60,*) i_time, energy + sl_sp_ener
-write(61,*) i_time, energy
-write(62,*) i_time, sl_sp_ener
+write(60,*) i_time, energy + sl_sp_ener !total energy
+write(61,*) i_time, energy ! bonded energy 
+write(62,*) i_time, sl_sp_ener !Slip-anchor energy
 
 !DEBUGGING, sl_sp_ener variation  not calculated correctly 
 !call get_anch_ener()
@@ -142,10 +209,10 @@ write(60,*) i_time, energy
 #endif
 
 !Save Chain Center of mass to calculate g3
-write(73,"(I15.1,1f13.8)" ) i_time, sum ( ( r_cm(:) - r_cm_init(:) )**2 ) !r_cm(:) - r_cm_init(:) !
+write(73,"(I15.1,1f15.8)" ) i_time, sum ( ( r_cm(:) - r_cm_init(:) )**2 ) !r_cm(:) - r_cm_init(:) !
 
 !Save mean bead displacement to calculate g1
-write(71,"(I15.1,1f13.8)" ) i_time, sum ( ( r0(:,1) - r0_init(:,1) )**2 )
+write(71,"(I15.1,1f15.8)" ) i_time, sum ( ( r0(:,1) - r0_init(:,1) )**2 )
 
 #ifdef g3 
     r_cm_t(:,j_save) = r_cm(:)
@@ -217,6 +284,9 @@ implicit none
 !Pick random anchor
 mv_anchor = int( uni() * float(n_anchor) ) + 1 
 
+!DEBUG
+!print*,"mv_anchor",mv_anchor
+
 !Set random hop
 if( uni() .le. 0.5) then
     hop_mv = -1
@@ -226,17 +296,31 @@ end if
 
 j_mon = attach(mv_anchor) + hop_mv ! New Monomer to anchor 
 
+!DEBUG
+!print*,"j_mon",j_mon
+
 !CHECK IF j_mon = attach(mv_anchor) + hop_mv is 0 or n_mon + 1
 if ( (j_mon.eq.0) .or. (j_mon.eq.n_mon+1)) then
+    !DEBUG
+    !print*, "calling tube_renewal and constraint_release"
+
     call tube_renewal() !New anchor monomer is out of the chain, perform tube_renewal
     call constraint_release() ! and constraint_release with probability 1
 
     rej_mv = .True. !Reject Hopping
 
 !CHECK IF j_mon = attach(mv_anchor) + hop_mv is occupied.
-else if( anchor(j_mon) .ne. 0 ) then 
+else if( anchor(j_mon) .ne. 0 ) then
+    
+    !DEBUG
+    !print*, "anchor(j_mon) .ne. 0", anchor(j_mon)
+    
     rej_mv = .True. 
 else
+   
+   !DEBUG
+    !print*,"performing hopp"
+    
     rej_mv = .False.
 end if
 
@@ -338,7 +422,7 @@ subroutine get_anch_delta_energy()
 use com_vars
 implicit none
 
-delta_energy = 0
+delta_energy = 0.
 
 delta_energy = delta_energy - .5 * k_sl_sp * sum( ( anch_r0(:,mv_anchor) - r0(:,attach(mv_anchor)) ) ** 2 )
 
@@ -358,7 +442,18 @@ real(kind=8) :: prob_rej
 
 prob_rej = 1. - exp(-delta_energy / Temp)
 
+!DEBUG
+!print*,"delta_energy",delta_energy
+!print*,"prob_rej",prob_rej
+
 if( .not. (uni() .le. prob_rej) ) then !If change is not rejected (so, accepted)
+
+    !DEBUG
+    !print*,"Hopp accepted"
+    !print*,"mv_anchor",mv_anchor
+    !print*, "release monomer attach(mv_anchor)", attach(mv_anchor)
+    !print*, "Attaching mv_anchor to monomer attach(mv_anchor) + hop_mv", attach(mv_anchor) + hop_mv
+    
     sl_sp_ener = sl_sp_ener + delta_energy !change energy
     anchor(attach(mv_anchor)) = 0 ! free bead number = attach(mv_anchor)     
     attach(mv_anchor) = attach(mv_anchor) + hop_mv !perform movement
@@ -416,6 +511,7 @@ end subroutine
 
 subroutine get_anch_ener()
 #include "prepro.h"
+#ifdef SLIP_LINK
 use com_vars
 implicit none
 
@@ -427,7 +523,7 @@ do i_anchor = 1, n_anchor
 end do
 
 sl_sp_ener = sl_sp_ener * 0.5
-
+#endif
 end subroutine
 
 
@@ -509,39 +605,41 @@ end select
 !    end do
 !end do
 
-anchor(:) = 0
-!Set which monomers are anchored
-do i_anchor = 1, n_anchor !loop anchor points
-
-    j_mon = int( uni() * float(n_mon) ) + 1 !select monomer to be attached to anchor point i_anchor
+if (init_mode .ne. 3) then ! If config is not read from init_positions.dat
+    anchor(:) = 0
+    !Set which monomers are anchored
+    do i_anchor = 1, n_anchor !loop anchor points
     
-    do while( anchor( j_mon ) .ne. 0 )  !If monomer is not free, try again
-        j_mon = int( uni() * float(n_mon) ) + 1
+        j_mon = int( uni() * float(n_mon) ) + 1 !select monomer to be attached to anchor point i_anchor
+        
+        do while( anchor( j_mon ) .ne. 0 )  !If monomer is not free, try again
+            j_mon = int( uni() * float(n_mon) ) + 1
+        end do
+    
+        anchor( j_mon ) = i_anchor ! j_mon is free, anchor j_mon to i_anchor
+        attach(i_anchor) = j_mon
+       
+    end do
+    
+    !Initiate anchor positions anch_r0, near attached monomers, with gaussian
+    !probability distribution
+    
+    do i_anchor = 1, n_anchor
+        do i_dim = 1, n_dim
+            anch_r0(i_dim,i_anchor) = std_dev * rnor() + r0(i_dim,attach(i_anchor))
+        end do
     end do
 
-    anchor( j_mon ) = i_anchor ! j_mon is free, anchor j_mon to i_anchor
-    attach(i_anchor) = j_mon
-   
-end do
+end if    !If anchor positions are not read from file init_positions.dat
 
-!Initiate anchor positions anch_r0, near attached monomers, with gaussian
-!probability distribution
-
-do i_anchor = 1, n_anchor
-    do i_dim = 1, n_dim
-        anch_r0(i_dim,i_anchor) = std_dev * rnor() + r0(i_dim,attach(i_anchor))
+    !Set neighbors of anchors to perform tube_renewal and coinstraint_release    
+    do i_anchor = 1, n_anchor !loop anchor points
+        if ( mod(i_anchor,2) .eq. 0) then !if anchor point  is pair
+            anch_neigh( i_anchor ) = i_anchor - 1 !neighbour is previous anch
+        else ! anchor point is odd
+            anch_neigh( i_anchor ) = i_anchor + 1 ! neighbour is next anch
+        end if
     end do
-end do
-
-!Set neighbors of anchors to perform tube_renewal and coinstraint_release
-
-do i_anchor = 1, n_anchor !loop anchor points
-    if ( mod(i_anchor,2) .eq. 0) then !if anchor point  is pair
-        anch_neigh( i_anchor ) = i_anchor - 1 !neighbour is previous anch
-    else ! anchor point is odd
-        anch_neigh( i_anchor ) = i_anchor + 1 ! neighbour is next anch
-    end if
-end do
 
 #endif
 
@@ -550,8 +648,14 @@ end do
 r_cm_init(:) =  inv_nmon * sum( r0(:,:), 2)
 
 do i_dim = 1, n_dim
-    r0(i_dim,:) = r0(i_dim,:) - r_cm_init(:) + boundary(:) / 2. 
+    r0(i_dim,:) = r0(i_dim,:) - r_cm_init(i_dim) + boundary(i_dim) / 2.
+
+#ifdef SLIP_LINK
+     anch_r0(i_dim,:) = anch_r0(i_dim,:) - r_cm_init(i_dim) + boundary(i_dim) / 2.
+#endif
+
 end do
+
 !Save initial position
 
 r_cm_init(:) =  inv_nmon * sum( r0(:,:), 2)
@@ -562,7 +666,6 @@ end subroutine
 subroutine read_input()
 use com_vars
 implicit none
-
 
 open (unit = 53, file = "input.dat", status= "old")
 
