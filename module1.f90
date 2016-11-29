@@ -23,7 +23,7 @@ real(kind=8) , dimension(:,:), allocatable ::  anch_r0 !anchoring points
 !positions
 
 integer :: hop_mv, i_anchor, n_anchor, mv_anchor ! Number of anchor points
-real(kind=8) :: sl_sp_ener, k_sl_sp, std_dev  !Total slip-link energy, slip_spring constant
+real(kind=8) :: sl_sp_ener, delta_sl_sp_ener,  k_sl_sp, std_dev  !Total slip-link energy, slip_spring constant
 logical :: rej_mv
 #endif
 end module com_vars

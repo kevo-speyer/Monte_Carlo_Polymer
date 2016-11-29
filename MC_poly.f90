@@ -7,8 +7,9 @@ implicit none
 
 !DEBUG
 #ifdef SLIP_LINK
-print*, "anchor definded"
+print*, "Slip Link definded"
 #endif
+
 ! Read input parameters
 call read_input()
 
@@ -22,6 +23,9 @@ end if
 call init_system(init_mode) ! 1 is random walk;
                     ! 2 is uniformly random (no correlation between beads)
                     ! 3 is read old file with positions 
+
+print*, "System initialized correctly"
+
 ! Meassure Energy
 call get_energy()
 
@@ -43,7 +47,7 @@ do i_time = 1, n_time
     call hopp_attempt() ! Try hopping attempt
     
     if (.not. rej_mv ) call MC_hopp_acc() !Accept with probability = min(1,exp( -delta_energy/kT ) )
-
+    
 #endif
 
 ! Save data every n_mon trials
@@ -123,7 +127,19 @@ call get_rcm()
 call get_rend()
 
 !Save Energy
+#ifdef SLIP_LINK
+write(60,*) i_time, energy + sl_sp_ener
+write(61,*) i_time, energy
+write(62,*) i_time, sl_sp_ener
+
+!DEBUGGING, sl_sp_ener variation  not calculated correctly 
+!call get_anch_ener()
+!write(62,*) i_time, sl_sp_ener
+
+#else 
 write(60,*) i_time, energy
+
+#endif
 
 !Save Chain Center of mass to calculate g3
 write(73,"(I15.1,1f13.8)" ) i_time, sum ( ( r_cm(:) - r_cm_init(:) )**2 ) !r_cm(:) - r_cm_init(:) !
@@ -143,6 +159,7 @@ write(81,"(I15.1,3f15.8)" ) i_time, r_end(:)
 end subroutine
 
 subroutine MC_acceptance()
+#include "prepro.h"
 use com_vars
 use ziggurat
 
@@ -154,7 +171,16 @@ prob_rej = 1. - exp(-delta_energy / Temp)
 if( .not. (uni() .le. prob_rej) ) then !If change is not rejected (so, accepted)
     energy = energy + delta_energy !change energy
     r0(:,mv_mon) = r0(:,mv_mon) + dr_mv(:) !perform movement
-end if    
+
+#ifdef SLIP_LINK
+    if ( anchor(mv_mon) .ne. 0 ) then
+        energy = energy - delta_sl_sp_ener
+        sl_sp_ener = sl_sp_ener + delta_sl_sp_ener
+        !print*,"move attempt"
+        !call slip_energy_check()
+    end if
+#endif   
+  end if    
 
 end subroutine
 
@@ -230,31 +256,37 @@ use ziggurat
 implicit none
 integer :: end_mon
 
+!Reclaculate slink spring energy: Substract spring energy
+sl_sp_ener = sl_sp_ener - .5 * k_sl_sp * sum( ( anch_r0(:,mv_anchor) - r0(:,attach(mv_anchor)) ) ** 2 )
+
 !Release end bead attachment
 anchor( attach(mv_anchor) ) = 0 
 
 !Choose a free chain end monomer (end_mon) 
 if( uni() .le. 0.5) then
     end_mon = 1
-    if ( anchor(end_mon) .ne. 0) end_mon = n_mon
+    if ( anchor(end_mon) .ne. 0) end_mon = n_mon    
 else
     end_mon = n_mon
     if ( anchor(end_mon) .ne. 0) end_mon = 1 
 end if
 
 !Redo lists
-
 attach(mv_anchor) = end_mon
 anchor( end_mon ) = mv_anchor
 
 ! create a new anchor point according to
 ! anch_r0(i_dim,mv_anch) = std_dev * rnor() + r0(i_dim,end_mon)
 
-!WARNING std_dev NOT DEFINED!!!!!!!!!
 do i_dim = 1, n_dim
     anch_r0(i_dim,mv_anchor) = std_dev * rnor() + r0(i_dim,end_mon)
 end do
 
+!Add new spring energy
+sl_sp_ener = sl_sp_ener + .5 * k_sl_sp * sum( ( anch_r0(:,mv_anchor) - r0(:,attach(mv_anchor)) ) ** 2 )
+
+!print*,"tube_renewal"
+!call slip_energy_check()
 #endif /*anchor*/
 end subroutine tube_renewal
 
@@ -264,10 +296,15 @@ subroutine constraint_release()
 use com_vars
 use ziggurat
 implicit none
-integer :: new_mon, nei_mon 
+integer :: new_mon, nei_mon, nei_anch
  
 !Release neighbour monomer attachment
-nei_mon = attach( anch_neigh( mv_anchor ) )
+nei_anch = anch_neigh( mv_anchor )
+nei_mon = attach( nei_anch )
+
+!First take out attach energy
+sl_sp_ener = sl_sp_ener - .5 * k_sl_sp * sum( ( anch_r0(:,nei_anch) - r0(:,nei_mon) ) ** 2 )
+
 anchor( nei_mon ) = 0
 
 !Choose a new monomer bead
@@ -278,14 +315,19 @@ do while( anchor(new_mon) .ne. 0 )
 end do
 
 !Attach to new monomer bead
-attach( anch_neigh( mv_anchor ) ) = new_mon
-anchor( new_mon ) = anch_neigh( mv_anchor ) !new_mon is anchored to neighbour of mv_anchor
+attach( nei_anch ) = new_mon
+anchor( new_mon ) = nei_anch !new_mon is anchored to neighbour of mv_anchor
 
 ! Set ach_r0
 do i_dim = 1, n_dim
-    anch_r0(i_dim,anch_neigh( mv_anchor )) = std_dev * rnor() + r0(i_dim,new_mon)
+    anch_r0(i_dim,nei_anch) = std_dev * rnor() + r0(i_dim,new_mon)
 end do
 
+!Add new Slip_Link spring Energy
+sl_sp_ener = sl_sp_ener + .5 * k_sl_sp * sum( ( anch_r0(:,nei_anch) - r0(:,new_mon) ) ** 2 )
+
+!print*,"constraint_release"
+!call slip_energy_check()
 #endif /*anchor*/
 end subroutine constraint_release
 
@@ -321,6 +363,8 @@ if( .not. (uni() .le. prob_rej) ) then !If change is not rejected (so, accepted)
     anchor(attach(mv_anchor)) = 0 ! free bead number = attach(mv_anchor)     
     attach(mv_anchor) = attach(mv_anchor) + hop_mv !perform movement
     anchor(attach(mv_anchor)) = mv_anchor
+    !print*,"hopp"
+    !call slip_energy_check()
 end if    
 
 #endif
@@ -334,7 +378,7 @@ subroutine get_delta_energy()
 use com_vars
 implicit none
 
-delta_energy = 0
+delta_energy = 0.
 if (mv_mon.ne.1)     delta_energy = delta_energy + .5 * k_spr * sum( ( r0(:,mv_mon) + dr_mv(:) - r0(:,mv_mon-1) ) ** 2 )
 if (mv_mon.ne.n_mon) delta_energy = delta_energy + .5 * k_spr * sum( ( r0(:,mv_mon) + dr_mv(:) - r0(:,mv_mon+1) ) ** 2 )  
 if (mv_mon.ne.1)     delta_energy = delta_energy - .5 * k_spr * sum( ( r0(:,mv_mon)            - r0(:,mv_mon-1) ) ** 2 )
@@ -343,8 +387,10 @@ if (mv_mon.ne.n_mon) delta_energy = delta_energy - .5 * k_spr * sum( ( r0(:,mv_m
 #ifdef SLIP_LINK
 !Get delta energy from anchor point to monomer mn_mon
 if ( anchor(mv_mon) .ne. 0 ) then ! if monomer is attached to an anchor point
-    delta_energy = delta_energy + .5 * k_sl_sp * sum( ( r0(:,mv_mon) + dr_mv(:) - anch_r0(:,anchor(mv_mon)) ) **2 )
-    delta_energy = delta_energy - .5 * k_sl_sp * sum( ( r0(:,mv_mon)            - anch_r0(:,anchor(mv_mon)) ) **2 )   
+    delta_sl_sp_ener = 0.
+    delta_sl_sp_ener = delta_sl_sp_ener + .5 * k_sl_sp * sum( ( r0(:,mv_mon) + dr_mv(:) - anch_r0(:,anchor(mv_mon)) ) **2 )
+    delta_sl_sp_ener = delta_sl_sp_ener - .5 * k_sl_sp * sum( ( r0(:,mv_mon)            - anch_r0(:,anchor(mv_mon)) ) **2 )   
+    delta_energy = delta_energy + delta_sl_sp_ener 
 end if
 
 #endif
@@ -373,7 +419,7 @@ subroutine get_anch_ener()
 use com_vars
 implicit none
 
-sl_sp_ener = 0
+sl_sp_ener = 0.
 
 !loop over anchor points
 do i_anchor = 1, n_anchor
@@ -456,12 +502,12 @@ end select
 #ifdef SLIP_LINK
 !Initiate anchor points
 
-!Randomly in simulation box:
-do i_anchor = 1, n_anchor
-    do i_dim = 1, n_dim
-        anch_r0(i_dim, i_anchor) = boundary(i_dim) * uni()
-    end do
-end do
+!!Randomly in simulation box:
+!do i_anchor = 1, n_anchor
+!    do i_dim = 1, n_dim
+!        anch_r0(i_dim, i_anchor) = boundary(i_dim) * uni()
+!    end do
+!end do
 
 anchor(:) = 0
 !Set which monomers are anchored
@@ -478,6 +524,15 @@ do i_anchor = 1, n_anchor !loop anchor points
    
 end do
 
+!Initiate anchor positions anch_r0, near attached monomers, with gaussian
+!probability distribution
+
+do i_anchor = 1, n_anchor
+    do i_dim = 1, n_dim
+        anch_r0(i_dim,i_anchor) = std_dev * rnor() + r0(i_dim,attach(i_anchor))
+    end do
+end do
+
 !Set neighbors of anchors to perform tube_renewal and coinstraint_release
 
 do i_anchor = 1, n_anchor !loop anchor points
@@ -491,7 +546,14 @@ end do
 #endif
 
 
+!Center initial position
+r_cm_init(:) =  inv_nmon * sum( r0(:,:), 2)
+
+do i_dim = 1, n_dim
+    r0(i_dim,:) = r0(i_dim,:) - r_cm_init(:) + boundary(:) / 2. 
+end do
 !Save initial position
+
 r_cm_init(:) =  inv_nmon * sum( r0(:,:), 2)
 r0_init = r0
 end subroutine
@@ -572,3 +634,16 @@ end do
 #endif
 end subroutine 
 
+subroutine slip_energy_check()
+use com_vars
+#include "prepro.h"
+#ifdef SLIP_LINK
+implicit none
+real(kind=8) :: old_sl_sp_en
+
+old_sl_sp_en = sl_sp_ener
+
+call get_anch_ener()
+if(old_sl_sp_en .ne. sl_sp_ener ) print*, "ERROR: sl_sp_ener badly calculated", sl_sp_ener - old_sl_sp_en
+#endif
+end subroutine
