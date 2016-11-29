@@ -17,7 +17,7 @@ inquire( file='init_positions.dat', exist=init_pos )
 if ( init_pos )  then
     init_mode = 3
 else
-    init_mode = 2
+    init_mode = 1 !Random Walk
 end if    
 call init_system(init_mode) ! 1 is random walk;
                     ! 2 is uniformly random (no correlation between beads)
